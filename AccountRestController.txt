@@ -1,0 +1,65 @@
+@RestResource(urlMapping='/account/*')
+global with sharing class AccountRestController {
+
+    @HttpPost
+    global static String createAccount(String name, String phoneNumber, String emailAddress, String residentialAddress) {
+        // Perform validation on input
+
+        // Create Account record
+        Account newAccount = new Account(
+            Name = name,
+            Phone = phoneNumber,
+            Email__c = emailAddress,
+            Residential_Address__c = residentialAddress
+        );
+        insert newAccount;
+
+        return 'Account created successfully. Account Id: ' + newAccount.Id;
+    }
+
+  @HttpGet
+global static String getAccountDetails() {
+    RestRequest req = RestContext.request;
+            String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
+
+    try {
+        Account account = [SELECT Name, Phone, Email__c, Residential_Address__c FROM Account WHERE Id = :accountId];
+        return 'Account Details: ' + account;
+    } catch (Exception e) {
+        return 'Error retrieving account details: ' + e.getMessage();
+    }
+}
+   @HttpPut
+    global static String updateAccount(String name, String phoneNumber, String emailAddress, String residentialAddress) {
+        RestRequest req = RestContext.request;
+        String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
+
+        try {
+            Account accountToUpdate = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+            accountToUpdate.Name = name;
+            accountToUpdate.Phone = phoneNumber;
+            accountToUpdate.Email__c = emailAddress;
+            accountToUpdate.Residential_Address__c = residentialAddress;
+            update accountToUpdate;
+
+            return 'Account updated successfully.';
+        } catch (Exception e) {
+            return 'Error updating account: ' + e.getMessage();
+        }
+    }
+    @HttpDelete
+    global static String deleteAccount() {
+        String accountId = RestContext.request.requestURI.substringAfterLast('/');
+        
+        // Query Account by Id
+        Account accountToDelete = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+        
+        if (accountToDelete != null) {
+            delete accountToDelete;
+            return 'Account deleted successfully';
+        } else {
+            RestContext.response.statusCode = 404;
+            return 'Account not found';
+        }
+    }
+}
